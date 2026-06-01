@@ -1,0 +1,39 @@
+name: Publish binctl-client
+
+'on':
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Clone binctl
+        run: git clone --depth=1 https://github.com/clueboard/binctl.git /tmp/binctl
+
+      - name: Set up development environment
+        working-directory: /tmp/binctl
+        run: uv sync --group dev
+
+      - name: Generate binctl-client
+        working-directory: /tmp/binctl
+        run: uv run bash genclient.sh
+
+      - name: Build package
+        run: uv build --directory /tmp/binctl/binctl-client
+
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: /tmp/binctl/binctl-client/dist
